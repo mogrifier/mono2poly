@@ -9,13 +9,14 @@ Sequencer sequencer;
 Receiver recv;
 Transmitter mitter;
 TargetDataLine line = null;
-byte[] audio = new byte[1000000];
+byte[] audio = new byte[10000000];
 OutputStream audioRecord;
 AudioFileFormat.Type fileType = AudioFileFormat.Type.WAVE;
 AudioFormat format;
 ByteArrayInputStream inputStream;
 AudioInputStream audioInputStream;
 int count = 0;
+MidiDevice.Info myMidiOut;
 
 void setup() {
   size(640, 360);
@@ -27,7 +28,7 @@ showMixers();
 
   Mixer.Info[] mixers = AudioSystem.getMixerInfo();
   
-  Mixer recordingMixer = AudioSystem.getMixer(mixers[20]);
+  Mixer recordingMixer = AudioSystem.getMixer(mixers[21]);
   
   println(recordingMixer.getMixerInfo().toString());
   
@@ -36,7 +37,7 @@ showMixers();
   for (int i = 0; i < lines.length; i++) {
     println (lines[i].getLineInfo().toString());
   }
-  
+   
     try {
    // Set the audio format
 
@@ -64,38 +65,32 @@ showMixers();
   
   
   try {
-
+      
     // Get a Sequencer instance
     sequencer = MidiSystem.getSequencer();
     // Open the sequencer
     sequencer.open();
     // Set the sequence for the sequencer
-
-    Sequence sequence = MidiSystem.getSequence(createInput("./midifiles/reascripting.mid"));
+    Sequence sequence = MidiSystem.getSequence(createInput("./midifiles/midiexport.mid"));
     sequencer.setSequence(sequence);
 
+    //for writing a track as a midi test
     Track track = sequence.getTracks()[0];
-
-    Receiver recv = getReceiver(2);
-    println(recv);
-
     mitter = sequencer.getTransmitter();
     // Start playing the sequence on the specified MIDI channel
+    recv = getReceiver(1);
+    //set to transmit on this port to device
     mitter.setReceiver(recv);
-
     // Loop through the track's MIDI events
     for (int i = 0; i < 2; i++) {
       MidiEvent event = track.get(i);
-
       int status = event.getMessage().getStatus();
       println("tick = " + event.getTick() + " and status = " + status);
-
       if ( status >= 144 && status <= 159) {
         println("note on");
         println("note =" + event.getMessage().getMessage()[1]);
         println(event.getTick());
       }
-
       if (status >= 128 && status <= 143) {
         ;
         println("note off");
@@ -122,10 +117,10 @@ void draw() {
 
 //I am recording????  read(byte[] b, int off, int len)
 
-  count =  count +  line.read(audio, count, 8192);
-  println("read audio = " + count);
+  count =  count +  line.read(audio, 0, 8192);
+  //println("read audio = " + count);
   //add bytes to big array
-  
+  //println(Arrays.toString(audio));
   
   if (!sequencer.isRunning()) {
     //close and exit
@@ -165,8 +160,10 @@ Receiver getReceiver(int channel) throws MidiUnavailableException {
     if (info[i].toString().contains("Express  128: Port " + channel))
     {
       //found receiver
-      println("found requested device: " + info[i]);
-      receiver = MidiSystem.getMidiDevice(info[i]).getReceiver();
+      println("**************** found requested device: " + info[i]);
+      MidiDevice device = MidiSystem.getMidiDevice(info[i]);
+      device.open();
+      receiver = device.getReceiver();
       break;
     }
   }
@@ -233,66 +230,6 @@ void writeMidiFile() {
   }
 }
 
-
-
-void record() {
-
-  try {
-    // Set the audio format
-    AudioFormat format = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, 44100, 16, 2, 4, 44100, false);
-
-    // Get the default microphone as the target data line for recording
-    DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
-    TargetDataLine line = (TargetDataLine) AudioSystem.getLine(info);
-
-    // Open the target data line for recording
-    line.open(format);
-
-    // Start recording
-    line.start();
-
-    // Create a new thread to write the recorded audio to a file
-    Thread thread = new Thread(new Runnable() {
-      @Override
-        public void run() {
-        try {
-          // Set the file format and create a new audio file
-          AudioFileFormat.Type fileType = AudioFileFormat.Type.WAVE;
-          File audioFile = new File("recording.wav");
-
-          // Wait for 10 seconds while recording
-          Thread.sleep(10000);
-
-          // Stop recording
-          line.stop();
-          line.close();
-
-          // Get the recorded audio data as a byte array
-          //read(byte[] b, int off, int len)
-
-          byte[] audioData = new byte[8192];
-          //byte[] audioData = byteArrayOutputStream.toByteArray();
-
-          // Write the recorded audio data to the audio file
-          ByteArrayInputStream inputStream = new ByteArrayInputStream(audioData);
-          AudioInputStream audioInputStream = new AudioInputStream(inputStream, format, audioData.length / format.getFrameSize());
-          AudioSystem.write(audioInputStream, fileType, audioRecord);
-        }
-        catch (Exception ex) {
-          ex.printStackTrace();
-        }
-      }
-    }
-    );
-    thread.start();
-
-    // Wait for the thread to finish before exiting
-    thread.join();
-  }
-  catch (Exception ex) {
-    ex.printStackTrace();
-  }
-}
 
 
 
