@@ -28,12 +28,22 @@ showMixers();
 
   Mixer.Info[] mixers = AudioSystem.getMixerInfo();
   
-  Mixer recordingMixer = AudioSystem.getMixer(mixers[21]);
+  Mixer recordingMixer = AudioSystem.getMixer(mixers[7]);
+  //Mixer: 19UFX1604 Input 13/14 (Behringer , supports TargetDataLine , Direct Audio Device: DirectSound Capture
   
-  println(recordingMixer.getMixerInfo().toString());
+  /*
+  To record in Windows 11, you have to select the mixer for the default sound input for recording.
+  Also has to be allowed, naturally, to be default in first place. Just showing up in the list of inputs
+  is NOT good enough.
+  If you can't find a device in the sound settings, scroll down to All Sound Devices and you may find it was disabled.
+  */
+  
+  
+  
+  println("using mixer " + recordingMixer.getMixerInfo().toString());
   
   Line[] lines =  recordingMixer.getSourceLines();
-  println("lines = " + lines.length);
+  println("** lines = " + lines.length);
   for (int i = 0; i < lines.length; i++) {
     println (lines[i].getLineInfo().toString());
   }
@@ -41,12 +51,9 @@ showMixers();
     try {
    // Set the audio format
 
-   
    format = new AudioFormat(44000.0, 16, 2, true, false);
-   
    inputStream = new ByteArrayInputStream(audio);
             audioInputStream = new AudioInputStream(inputStream, format, audio.length / format.getFrameSize());
-   
    
    // Get the default microphone as the target data line for recording
    DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
@@ -65,7 +72,7 @@ showMixers();
   
   
   try {
-      
+
     // Get a Sequencer instance
     sequencer = MidiSystem.getSequencer();
     // Open the sequencer
@@ -117,7 +124,7 @@ void draw() {
 
 //I am recording????  read(byte[] b, int off, int len)
 
-  count =  count +  line.read(audio, 0, 8192);
+  count =  count +  line.read(audio, count, line.available());
   //println("read audio = " + count);
   //add bytes to big array
   //println(Arrays.toString(audio));
