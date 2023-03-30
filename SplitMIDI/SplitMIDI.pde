@@ -28,7 +28,7 @@ showMixers();
 
   Mixer.Info[] mixers = AudioSystem.getMixerInfo();
   
-  Mixer recordingMixer = AudioSystem.getMixer(mixers[7]);
+  Mixer recordingMixer = AudioSystem.getMixer(mixers[18]);
   //Mixer: 19UFX1604 Input 13/14 (Behringer , supports TargetDataLine , Direct Audio Device: DirectSound Capture
   
   /*
@@ -37,8 +37,6 @@ showMixers();
   is NOT good enough.
   If you can't find a device in the sound settings, scroll down to All Sound Devices and you may find it was disabled.
   */
-  
-  
   
   println("using mixer " + recordingMixer.getMixerInfo().toString());
   
@@ -81,11 +79,14 @@ showMixers();
     Sequence sequence = MidiSystem.getSequence(createInput("./midifiles/midiexport.mid"));
     sequencer.setSequence(sequence);
 
+//examine all events in the sequence
+    dumpSequence(sequence);
+
     //for writing a track as a midi test
     Track track = sequence.getTracks()[0];
     mitter = sequencer.getTransmitter();
-    // Start playing the sequence on the specified MIDI channel
-    recv = getReceiver(1);
+    // Start playing the sequence on the specified MIDI output port of the MOTU express
+    recv = getReceiver(2);
     //set to transmit on this port to device
     mitter.setReceiver(recv);
     // Loop through the track's MIDI events
@@ -146,10 +147,6 @@ void draw() {
   catch (IOException e) {
     e.printStackTrace();
   }
-
-    
-    
-    
     exit();
   }
 }
@@ -287,4 +284,39 @@ void showMixers() {
       
       index++;
   }
+}
+
+
+
+void dumpSequence(Sequence seq) {
+  
+  //first track just had special commands. track 1 contains the actual data. SMF Type 1.
+  /*
+  144 = note on
+  128 = note off
+  176 = chan1 control/mode change. 64 = sustain pedal.
+  
+  negative byte values just need 256 added to them.
+  
+  */
+  Track track = seq.getTracks()[1];
+  MidiEvent event = null;
+  long tick = 0;
+  for (int i = 0; i < track.size(); i++)
+  {
+      event = track.get(i);
+      print("status = " + event.getMessage().getStatus() + "  ");
+      byte[] msg = event.getMessage().getMessage();
+      for (int j = 0; j < msg.length; j++) {
+         print(" byte " + j + "= " + msg[j]); 
+      }
+      tick = event.getTick();
+      println(" tick= " + tick);
+      
+  }
+  
+  
+  
+  
+  
 }
